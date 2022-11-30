@@ -1,0 +1,118 @@
+import pymongo
+from pymongo import MongoClient
+import json
+client=MongoClient()
+
+#create new database 
+new_db=client.student
+print("\n Create a new dataase")
+print(" --------------------\n")
+print(new_db)
+print()
+
+#create collection
+coll_name=new_db.student_collection
+print("\n Create New Collection")
+print(" ---------------------\n")
+print(coll_name)
+print()
+
+#open json file
+data = [json.loads(line)
+        for line in open('E:\Assignment\students.json', 'r', encoding='utf-8')]
+
+print(data)
+
+#inserting json file into collection
+'''coll_name.insert_many(data)
+
+print("records inserted")
+print()'''
+
+
+# 1) Find the student’s name who scored maximum scores in all (exam, quiz and homework)?
+print()
+print("Find students name who scored maximum score in all exam,quiz and homework")
+print("---------------------------------------------------\n")
+
+data=coll_name.aggregate([
+    {"$unwind":"$scores"},
+    {"$group":{"_id":"$_id","name":{"$first":"$name"},"Total":{"$sum":"$scores.score"}}},
+    {"$sort":{"Total":-1}},
+    {"$limit":1}
+    ])
+
+for i in data:
+        print(i)
+        print()
+
+
+# 2. Find students who scored below average in the exam and pass mark is 40%? ***
+
+print()
+print("Scores greater than 40 and less than 60")
+print("--------------------------------------- \n")
+result=coll_name.find({"scores.0.score":{'$gt':40,'$lt':60}})
+for i in result:
+        print(i)
+        print()
+
+
+#3. Find students who scored below pass mark and assigned them as fail, and above pass mark as pass in all the categories.
+print()
+print("Students marks pass/fail")
+print("------------------------\n")
+
+# update fail mark
+fail_marks=coll_name.update_many({'$and':[{"scores.0.score":{'$lt':40}},{"scores.1.score":{'$lt':40}},{"scores.2.score":{'$lt':40}}]},{'$set':{"Result":"Fail"}})
+print("Updated Successfully -- Result as Fail\n")
+
+#update pass mark
+pass_marks=coll_name.update_many({'$and':[{"scores.0.score":{'$gte':40}},{"scores.1.score":{'$gte':40}},{"scores.2.score":{'$gte':40}}]},{'$set':{"Result":"Pass"}})
+print("Updated Successfully -- Result as Pass\n")
+
+
+
+# 4. Find the total and average of the exam, quiz and homework and store them in a separate collection. ***
+
+print("Total and average of all exams , quiz and homework ")
+print("--------------------------------------------------\n")
+avg_result=coll_name.aggregate([{'$unwind':{'path':"$scores"}},{'$group':{'_id':"$scores.type",'Totalsum':{'$sum':"$scores.score"},'Avgscore':{'$avg':"$scores.score"}}}])
+print(avg_result)
+
+for i in avg_result:
+        print(i)
+
+
+# 5. Create a new collection which consists of students who scored below average and above 40% in all the categories. ** store in new collection
+print()
+print("Student scored below average and above 40%")
+print("------------------------------------------ \n")
+
+below_avg=coll_name.find({'$or':[{"scores.0.score":{'$gte':40,'$lte':60}},
+                                {"scores.1.score":{'$lte':60,'$gte':40}},
+                                {"scores.2.score":{'$lte':60, '$gte':40}}]})
+
+for i in below_avg:
+        print(i)
+        print()
+
+# 6. Create a new collection which consists of students who scored below the fail mark in all the categories. ## need to create new collection
+print()
+print("Students who scored below fail marks")
+print("------------------------------------ \n")
+
+fail_result=coll_name.find({"scores.0.score":{'$lt':40},"scores.1.score":{'$lt':40},"scores.2.score":{'$lt':40}})
+for i in fail_result:
+        print(i)
+
+
+# 7. Create a new collection which consists of students who scored above pass mark in all the categories. # need to create new collection
+print()
+print("Students who scored above pass mark")
+print("----------------------------------- \n")
+
+pass_result=coll_name.find({"scores.0.score":{'$gte':40},"scores.1.score":{'$gte':40},"scores.2.score":{'$gte':40}})
+for i in pass_result:
+        print(i)
+        print()
