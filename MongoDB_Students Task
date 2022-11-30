@@ -3,12 +3,14 @@ from pymongo import MongoClient
 import json
 client=MongoClient()
 
+
 #create new database 
 new_db=client.student
 print("\n Create a new dataase")
 print(" --------------------\n")
 print(new_db)
 print()
+
 
 #create collection
 coll_name=new_db.student_collection
@@ -17,11 +19,12 @@ print(" ---------------------\n")
 print(coll_name)
 print()
 
+
 #open json file
 data = [json.loads(line)
         for line in open('E:\Assignment\students.json', 'r', encoding='utf-8')]
-
 print(data)
+
 
 #inserting json file into collection
 '''coll_name.insert_many(data)
@@ -72,47 +75,75 @@ pass_marks=coll_name.update_many({'$and':[{"scores.0.score":{'$gte':40}},{"score
 print("Updated Successfully -- Result as Pass\n")
 
 
-
-# 4. Find the total and average of the exam, quiz and homework and store them in a separate collection. ***
+# 4. Find the total and average of the exam, quiz and homework and store them in a separate collection.
 
 print("Total and average of all exams , quiz and homework ")
 print("--------------------------------------------------\n")
-avg_result=coll_name.aggregate([{'$unwind':{'path':"$scores"}},{'$group':{'_id':"$scores.type",'Totalsum':{'$sum':"$scores.score"},'Avgscore':{'$avg':"$scores.score"}}}])
-print(avg_result)
 
+#create new collection as average
+
+new_db.create_collection('average')
+avg_result=coll_name.aggregate([{'$unwind':{'path':"$scores"}},{'$group':{'_id':"$scores.type",'Totalsum':{'$sum':"$scores.score"},'Avgscore':{'$avg':"$scores.score"}}}])
+tot_avg=new_db.average
 for i in avg_result:
         print(i)
+        tot_avg.insert_one(i)
 
 
-# 5. Create a new collection which consists of students who scored below average and above 40% in all the categories. ** store in new collection
-print()
+
+# 5. Create a new collection which consists of students who scored below average and above 40% in all the categories. 
 print("Student scored below average and above 40%")
 print("------------------------------------------ \n")
+def student(fail_result):
+        stud_percent=fail_result.aggregate([{'$unwind':'$scores'},
+                          {'$group':{"_id":"$_id","name":{"$first":"$name"},"max_score":{'$sum':"$scores.score"}}},
+                          {'$addFields':{"percentage":{'$divide':["$max_score",3]}}},
+                           {'$addFields':{"status":{"$cond":{'if' :{"$gte":["$percentage",40]},'then':"Pass",'else':"Fail"}}}}])
+        return stud_percent
 
-below_avg=coll_name.find({'$or':[{"scores.0.score":{'$gte':40,'$lte':60}},
-                                {"scores.1.score":{'$lte':60,'$gte':40}},
-                                {"scores.2.score":{'$lte':60, '$gte':40}}]})
 
-for i in below_avg:
-        print(i)
-        print()
+student_percent=student(coll_name)
 
-# 6. Create a new collection which consists of students who scored below the fail mark in all the categories. ## need to create new collection
+#creating new collection as below_avg
+
+new_db.create_collection('below_avg')
+average=new_db.below_avg
+for i in student_percent:
+        if i['percentage']>=40 and i['percentage']<60:
+                print(i)
+                average.insert_one(i)
+
+
+
+# 6. Create a new collection which consists of students who scored below the fail mark in all the categories. 
 print()
 print("Students who scored below fail marks")
 print("------------------------------------ \n")
 
-fail_result=coll_name.find({"scores.0.score":{'$lt':40},"scores.1.score":{'$lt':40},"scores.2.score":{'$lt':40}})
-for i in fail_result:
-        print(i)
+student_percent=student(coll_name)
+
+#creating new collection as student_failed
+
+new_db.create_collection('student_failed')
+fail=new_db.student_failed
+for i in student_percent:
+        if i['status']=='Fail':
+                print(i)
+                fail.insert_one(i)
 
 
-# 7. Create a new collection which consists of students who scored above pass mark in all the categories. # need to create new collection
+# 7. Create a new collection which consists of students who scored above pass mark in all the categories. 
 print()
 print("Students who scored above pass mark")
 print("----------------------------------- \n")
 
-pass_result=coll_name.find({"scores.0.score":{'$gte':40},"scores.1.score":{'$gte':40},"scores.2.score":{'$gte':40}})
-for i in pass_result:
-        print(i)
-        print()
+student_percent=student(coll_name)
+
+#creating new collection as student_passed
+
+new_db.create_collection('student_passed')
+fail=new_db.student_passed
+for i in student_percent:
+        if i['percentage']>=40:
+                print(i)
+                fail.insert_one(i)
