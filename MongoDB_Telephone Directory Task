@@ -1,0 +1,113 @@
+import pymongo
+from pymongo import MongoClient
+client=MongoClient()
+
+#list database names
+db=client.list_database_names()
+print("\n List Of Database Names")
+print(" -----------------------\n")
+print(db)
+print()
+
+#create new database 
+new_db=client.phone
+print("\n Create a new dataase")
+print(" --------------------\n")
+print(new_db)
+print()
+
+#create collection
+coll_name=new_db.phone_collection
+print("\n Create New Collection")
+print(" ---------------------\n")
+print(coll_name)
+print()
+
+#insert one document
+print("\n Inserting First document")
+print(" ------------------------\n")
+document = {'name':"Divya", 
+            "phone no": 9876543210,
+            "place": "coimbatore"}
+coll_name.insert_one(document)
+
+
+print("\n First Record \n")
+print(document)
+print()
+print()
+
+
+#insert many document
+
+print("\n Inserting Many Documents")
+print(" ------------------------\n")
+new_document = [{'name':"Ramya", 
+            "phone no": 3214569807,
+            "place": "erode"},
+
+            {'name':"Sowmya", 
+            "phone no": 4569871230,
+            "place": "chennai"},
+
+            {'name':"Vidya", 
+            "phone no": 1478523690,
+            "place": "bangalore"},
+
+            {'name':"Diya", 
+            "phone no": 8523697410,
+            "place": "hyderabad"},
+
+            {'name':"Sowndu", 
+            "phone no": 8514793320,
+            "place": "coimbatore"}]
+
+coll_name.insert_many(new_document)
+
+
+print("\n Inserted 5 records \n")
+print(new_document)
+print()
+print()
+
+
+#Find all inserted records
+all_records = coll_name.find()
+print(all_records)
+print("\n Printing all documents after insertion")
+print(" ------------------------------------- \n")
+for row in all_records:
+    print(row)
+    print()
+
+
+#Modify the records by name
+print("\n Update Name Ramya as Saranya \n")
+current = {"name": "Ramya"}
+name_update= {'$set': {"name": "Saranya"}}
+coll_name.update_one(current,name_update)
+
+
+#Check the document after updation
+print("\n Deleting document where name is vidya")
+all_records = coll_name.find()
+print(all_records)
+print("\n Printing all documents after updation")
+print(" ------------------------------------ \n")
+for row in all_records:
+    print(row)
+    print()
+
+
+#delete the docuemnt by name
+coll_name.delete_one({"name":"Vidya"})
+
+
+#Check the document after deletion
+all_records = coll_name.find()
+print(all_records)
+print("\n Printing all documents after deletion")
+print(" --------------------------------------- \n")
+for row in all_records:
+    print(row)
+    print()
